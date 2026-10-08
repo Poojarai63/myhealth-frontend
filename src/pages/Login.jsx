@@ -1,35 +1,55 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Get registered user from localStorage
-    const registeredUser = JSON.parse(
-      localStorage.getItem("user")
-    );
+    try {
+      // Send login request to backend
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
 
-    // Check if user has registered
-    if (!registeredUser) {
-      alert("Please register first.");
-      return;
-    }
+      const data = await response.json();
 
-    // Check email and password
-    if (
-      email === registeredUser.email &&
-      password === registeredUser.password
-    ) {
+      // If login failed
+      if (!response.ok) {
+        alert(data.message || "Login failed");
+        return;
+      }
+
+      // Save JWT token
+      localStorage.setItem("token", data.token);
+
+      // Save user information
+      localStorage.setItem("user", JSON.stringify(data.user));
+
       alert("Login successful!");
 
       // Go to Dashboard
-      window.location.href = "/dashboard";
-    } else {
-      alert("Invalid email or password.");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login Error:", error);
+
+      alert(
+        "Unable to connect to server. Please make sure backend is running."
+      );
     }
   };
 
